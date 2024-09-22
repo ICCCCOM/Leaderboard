@@ -28,7 +28,6 @@ namespace Leaderboard
         public SkipListNode<T> Header;
         public readonly int MaxLevel;
         private readonly Random _random = new Random();
-        private object _obj = new();
 
         public SkipList(int maxLevel)
         {
@@ -52,93 +51,88 @@ namespace Leaderboard
         // Insert node
         public void Insert(long key, T value)
         {
-            lock (_obj)
+            var newLevel = RandomLevel();
+            // Record the search path
+            var update = new SkipListNode<T>[MaxLevel];
+            var rank = new int[MaxLevel];
+            var current = Header;
+
+            // Calculate the number of nodes that can be skipped at each layer and record the update path
+            for (int i = MaxLevel - 1; i >= 0; i--)
             {
-                var newLevel = RandomLevel();
-                // Record the search path
-                var update = new SkipListNode<T>[MaxLevel];
-                var rank = new int[MaxLevel];
-                var current = Header;
-
-                // Calculate the number of nodes that can be skipped at each layer and record the update path
-                for (int i = MaxLevel - 1; i >= 0; i--)
+                // Set the value of the higher-level node
+                rank[i] = i == MaxLevel - 1 ? 0 : rank[i + 1];
+                // found node
+                while (current.Forward[i] != null && current.Forward[i].Value.CompareTo(value) < 0)
                 {
-                    // Set the value of the higher-level node
-                    rank[i] = i == MaxLevel - 1 ? 0 : rank[i + 1];
-                    // found node
-                    while (current.Forward[i] != null && current.Forward[i].Value.CompareTo(value) < 0)
-                    {
-                        rank[i] += current.Span[i];
-                        current = current.Forward[i];
-                    }
-                    update[i] = current;
+                    rank[i] += current.Span[i];
+                    current = current.Forward[i];
                 }
+                update[i] = current;
+            }
 
-                var newNode = new SkipListNode<T>(newLevel, value);
+            var newNode = new SkipListNode<T>(newLevel, value);
 
-                // Assign the path to the new node
-                for (int i = 0; i < newLevel; i++)
-                {
-                    newNode.Forward[i] = update[i].Forward[i];
-                    update[i].Forward[i] = newNode;
+            // Assign the path to the new node
+            for (int i = 0; i < newLevel; i++)
+            {
+                newNode.Forward[i] = update[i].Forward[i];
+                update[i].Forward[i] = newNode;
 
-                    // Calculate the new node span
-                    newNode.Span[i] = update[i].Span[i] - (rank[0] - rank[i]);
-                    update[i].Span[i] = rank[0] - rank[i] + 1;
-                }
-                for (int i = newLevel; i < MaxLevel; i++)
-                {
-                    update[i].Span[i]++;
-                }
-                // Set backward point
-                newNode.Backward = update[0] == Header ? null : update[0];
-                if (newNode.Forward[0] != null)
-                {
-                    newNode.Forward[0].Backward = newNode;
-                }
+                // Calculate the new node span
+                newNode.Span[i] = update[i].Span[i] - (rank[0] - rank[i]);
+                update[i].Span[i] = rank[0] - rank[i] + 1;
+            }
+            for (int i = newLevel; i < MaxLevel; i++)
+            {
+                update[i].Span[i]++;
+            }
+            // Set backward point
+            newNode.Backward = update[0] == Header ? null : update[0];
+            // Set Forward point (skip)
+            if (newNode.Forward[0] != null)
+            {
+                newNode.Forward[0].Backward = newNode;
             }
         }
 
         // Remove node
         public void Remove(T value)
         {
-            lock (_obj)
+            // Record the search path
+            var update = new SkipListNode<T>[MaxLevel];
+            var current = Header;
+            // Found node
+            for (int i = MaxLevel - 1; i >= 0; i--)
             {
-                // Record the search path
-                var update = new SkipListNode<T>[MaxLevel];
-                var current = Header;
-                // Found node
-                for (int i = MaxLevel - 1; i >= 0; i--)
+                while (current.Forward[i] != null && current.Forward[i].Value.CompareTo(value) < 0)
                 {
-                    while (current.Forward[i] != null && current.Forward[i].Value.CompareTo(value) < 0)
-                    {
-                        current = current.Forward[i];
-                    }
-                    update[i] = current;
+                    current = current.Forward[i];
                 }
+                update[i] = current;
+            }
 
-                current = current.Forward[0];
-                // if found
-                if (current != null && current.Value.CompareTo(value) == 0)
+            current = current.Forward[0];
+            // if found
+            if (current != null && current.Value.CompareTo(value) == 0)
+            {
+                for (int i = 0; i < MaxLevel; i++)
                 {
-                    for (int i = 0; i < MaxLevel; i++)
+                    // Calculate data and update pointers,Remove the current node
+                    if (update[i].Forward[i] == current)
                     {
-                        // Calculate data and update pointers,Remove the current node
-                        if (update[i].Forward[i] == current)
-                        {
-                            update[i].Span[i] += current.Span[i] - 1;
-                            update[i].Forward[i] = current.Forward[i];
+                        update[i].Span[i] += current.Span[i] - 1;
+                        update[i].Forward[i] = current.Forward[i];
 
-                            // update previous node
-                            if (current.Forward[i] != null)
-                            {
-                                current.Forward[i].Backward = update[i];
-                            }
-                        }
-                        else
+                        // update previous node
+                        if (current.Forward[i] != null)
                         {
-                            update[i].Span[i]--;
+                            current.Forward[i].Backward = update[i];
                         }
+                    }
+                    else
+                    {
+                        update[i].Span[i]--;
                     }
                 }
             }

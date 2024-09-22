@@ -17,6 +17,8 @@ namespace Leaderboard.Leaderboard.Imp
         //Node information associated with customer ID
         private readonly ConcurrentDictionary<long, Customer> _customers;
 
+        private static object _obj = new();
+
         public SkipListLeaderboard(SkipList<Customer> rankList, ConcurrentDictionary<long, Customer> customers)
         {
             _rankList = rankList;
@@ -123,35 +125,38 @@ namespace Leaderboard.Leaderboard.Imp
         /// <returns></returns>
         public decimal UpdateScore(long customerId, decimal newScore)
         {
-            // If customer id exists,update,use dic;
-            if (_customers.ContainsKey(customerId))
+            lock (_obj)
             {
-                var customer = _customers[customerId];
-                _rankList.Remove(customer);
-                // update score
-                customer.Score = customer.Score + newScore;
-                // insert to skip list
-                if (customer.Score > 0)
+                // If customer id exists,update,use dic;
+                if (_customers.ContainsKey(customerId))
                 {
-                    _rankList.Insert(customerId, customer);
+                    var customer = _customers[customerId];
+                    _rankList.Remove(customer);
+                    // update score
+                    customer.Score = customer.Score + newScore;
+                    // insert to skip list
+                    if (customer.Score > 0)
+                    {
+                        _rankList.Insert(customerId, customer);
+                    }
+                    _customers[customerId] = customer;
+                    return customer.Score;
                 }
-                _customers[customerId] = customer;
-                return customer.Score;
-            }
-            // If customer id not exists,insert
-            else
-            {
-                var customer = new Customer
+                // If customer id not exists,insert
+                else
                 {
-                    CustomerID = customerId,
-                    Score = newScore
-                };
-                if (customer.Score > 0)
-                {
-                    _rankList.Insert(customerId, customer);
+                    var customer = new Customer
+                    {
+                        CustomerID = customerId,
+                        Score = newScore
+                    };
+                    if (customer.Score > 0)
+                    {
+                        _rankList.Insert(customerId, customer);
+                    }
+                    _customers[customerId] = customer;
+                    return customer.Score;
                 }
-                _customers[customerId] = customer;
-                return customer.Score;
             }
         }
         /// <summary>
