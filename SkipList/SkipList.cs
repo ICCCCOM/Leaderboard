@@ -85,20 +85,16 @@ namespace Leaderboard
                     // Calculate the new node span
                     newNode.Span[i] = update[i].Span[i] - (rank[0] - rank[i]);
                     update[i].Span[i] = rank[0] - rank[i] + 1;
-
-                    // Set Forward point (skip)
-                    if (newNode.Forward[i] != null)
-                    {
-                        newNode.Forward[i].Backward = newNode;
-                    }
                 }
-
-                // Set backward point
-                newNode.Backward = update[0];
-
                 for (int i = newLevel; i < MaxLevel; i++)
                 {
                     update[i].Span[i]++;
+                }
+                // Set backward point
+                newNode.Backward = update[0] == Header ? null : update[0];
+                if (newNode.Forward[0] != null)
+                {
+                    newNode.Forward[0].Backward = newNode;
                 }
             }
         }
