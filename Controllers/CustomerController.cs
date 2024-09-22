@@ -1,5 +1,4 @@
 ﻿using Leaderboard.Leaderboard;
-using Leaderboard.Leaderboard.Imp;
 using Leaderboard.RequestModel;
 using Microsoft.AspNetCore.Mvc;
 

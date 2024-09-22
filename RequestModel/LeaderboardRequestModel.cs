@@ -1,6 +1,4 @@
-﻿using Leaderboard.Model;
-using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace Leaderboard.RequestModel

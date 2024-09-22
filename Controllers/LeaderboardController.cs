@@ -1,9 +1,7 @@
 ﻿using Leaderboard.Leaderboard;
-using Leaderboard.Leaderboard.Imp;
 using Leaderboard.Model;
 using Leaderboard.RequestModel;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 
 namespace Leaderboard.Controllers
