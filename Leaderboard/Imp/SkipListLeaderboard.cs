@@ -12,8 +12,7 @@ namespace Leaderboard.Leaderboard.Imp
 
         //Node information associated with customer ID
         private readonly ConcurrentDictionary<long, Customer> _customers;
-
-        private static object _obj = new();
+        private static readonly ConcurrentDictionary<long, object> _customerLocks = new ConcurrentDictionary<long, object>();
 
         public SkipListLeaderboard(SkipList<Customer> rankList, ConcurrentDictionary<long, Customer> customers)
         {
@@ -121,7 +120,8 @@ namespace Leaderboard.Leaderboard.Imp
         /// <returns></returns>
         public decimal UpdateScore(long customerId, decimal newScore)
         {
-            lock (_obj)
+            var customerLock = _customerLocks.GetOrAdd(customerId, new object());
+            lock (customerLock)
             {
                 // If customer id exists,update,use dic;
                 if (_customers.ContainsKey(customerId))
